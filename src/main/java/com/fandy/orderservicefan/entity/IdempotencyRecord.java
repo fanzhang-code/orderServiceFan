@@ -9,7 +9,7 @@ import org.springframework.data.relational.core.mapping.Table;
 
 
 @Table("idempotency_records")
-public class IdempotencyRecord implements Persistable<String> {
+public class IdempotencyRecord {
 
     @Id
     @Column("idempotencyKey")
@@ -22,8 +22,6 @@ public class IdempotencyRecord implements Persistable<String> {
     private String responseBody;
     @Column("createTime")
     private String createTime;
-    @Transient
-    private boolean isNew = true;
 
     public IdempotencyRecord() {}
 
@@ -33,20 +31,6 @@ public class IdempotencyRecord implements Persistable<String> {
         this.statusCode = statusCode;
         this.responseBody = responseBody;
         this.createTime = createTime;
-    }
-
-    @Override
-    public String getId() {
-        return idempotencyKey;
-    }
-
-    @Override
-    public boolean isNew() {
-        return isNew;
-    }
-
-    public void markNotNew() {
-        this.isNew = false;
     }
 
     public String getIdempotencyKey() { return idempotencyKey; }

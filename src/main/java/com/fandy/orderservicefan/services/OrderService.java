@@ -62,7 +62,6 @@ public class OrderService {
         try {
             System.out.println("hello fandy: " + record.getIdempotencyKey() + " " + record.getFingerprint());
             idempotencyRepository.save(record);
-            record.markNotNew();
         } catch (DuplicateKeyException e) {
             System.out.println("duplicate request");
             //duplicate request
@@ -70,7 +69,6 @@ public class OrderService {
             if(preRecord == null){
                 throw new RuntimeException("duplicate request but idempotency record not found");
             }
-            preRecord.markNotNew();
             //check payload
             if(!preRecord.getFingerprint().equals(fingerprint)){
                 throw new ConflictException("payload mismatch");
