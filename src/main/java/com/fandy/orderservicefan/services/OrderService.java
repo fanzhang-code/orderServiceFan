@@ -10,6 +10,7 @@ import com.fandy.orderservicefan.repository.LedgerRepository;
 import com.fandy.orderservicefan.repository.OrderRepository;
 import com.fandy.orderservicefan.requests.CreateOrderRequest;
 import com.fandy.orderservicefan.responses.CreateOrderResponse;
+import com.fandy.orderservicefan.responses.GetOrderResponse;
 import com.fandy.orderservicefan.utils.FingerprintUtil;
 import com.fandy.orderservicefan.utils.JsonUtils;
 import org.springframework.dao.DuplicateKeyException;
@@ -43,6 +44,13 @@ public class OrderService {
         return response;
     }
 
+    public GetOrderResponse getOrderDetail(String orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("order not found: " + orderId));
+        return new GetOrderResponse(order.getOrderId(), order.getCustomerId(), order.getItemId(), order.getQuantity(),
+                order.getStatus());
+    }
+
     @Transactional
     protected CreateOrderResponse createOrder(CreateOrderRequest createOrderRequest, String idempotencyKey){
         //cal fingerprint
@@ -52,13 +60,17 @@ public class OrderService {
         IdempotencyRecord record = new IdempotencyRecord(idempotencyKey, fingerprint, null, null,
                 Instant.now().toString());
         try {
+            System.out.println("hello fandy: " + record.getIdempotencyKey() + " " + record.getFingerprint());
             idempotencyRepository.save(record);
+            record.markNotNew();
         } catch (DuplicateKeyException e) {
+            System.out.println("duplicate request");
             //duplicate request
             IdempotencyRecord preRecord = idempotencyRepository.findById(idempotencyKey).orElse(null);
             if(preRecord == null){
                 throw new RuntimeException("duplicate request but idempotency record not found");
             }
+            preRecord.markNotNew();
             //check payload
             if(!preRecord.getFingerprint().equals(fingerprint)){
                 throw new ConflictException("payload mismatch");
@@ -69,6 +81,9 @@ public class OrderService {
                     throw new InProgressException("Request already in progress. Please retry it later.");
                 }
             }
+        } catch (Exception e) {
+            System.out.println("error while creating order: " + e.getMessage());
+            throw new RuntimeException();
         }
 
         //update order table
@@ -86,6 +101,7 @@ public class OrderService {
         CreateOrderResponse response = new CreateOrderResponse(orderId, "created", "order successfully created");
         record.setStatusCode("201");
         record.setResponseBody(JsonUtils.toJson(response));
+        System.out.println("update record: " + record.getIdempotencyKey() + " " + record.getResponseBody());
         idempotencyRepository.save(record);
 
         return response;

@@ -1,17 +1,22 @@
 package com.fandy.orderservicefan.entity;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 @Table("orders")
 public class Order {
 
     @Id
+    @Column("orderId")
     private String orderId;
-
+    @Column("customerId")
     private String customerId;
+    @Column("itemId")
     private String itemId;
+    @Column("quantity")
     private Integer quantity;
+    @Column("status")
     private String status;
 
     public Order() {}

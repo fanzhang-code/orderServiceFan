@@ -1,18 +1,29 @@
 package com.fandy.orderservicefan.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
+
 @Table("idempotency_records")
-public class IdempotencyRecord {
+public class IdempotencyRecord implements Persistable<String> {
 
     @Id
+    @Column("idempotencyKey")
     private String idempotencyKey;
-
+    @Column("fingerprint")
     private String fingerprint;
+    @Column("statusCode")
     private String statusCode;
+    @Column("responseBody")
     private String responseBody;
+    @Column("createTime")
     private String createTime;
+    @Transient
+    private boolean isNew = true;
 
     public IdempotencyRecord() {}
 
@@ -24,6 +35,19 @@ public class IdempotencyRecord {
         this.createTime = createTime;
     }
 
+    @Override
+    public String getId() {
+        return idempotencyKey;
+    }
+
+    @Override
+    public boolean isNew() {
+        return isNew;
+    }
+
+    public void markNotNew() {
+        this.isNew = false;
+    }
 
     public String getIdempotencyKey() { return idempotencyKey; }
     public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
@@ -39,5 +63,6 @@ public class IdempotencyRecord {
 
     public String getCreateTime() { return createTime; }
     public void setCreateTime(String createTime) { this.createTime = createTime; }
+
 
 }

@@ -1,18 +1,25 @@
 package com.fandy.orderservicefan.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 @Table("ledger")
 public class Ledger {
 
     @Id
+    @Column("ledgerId")
     private String ledgerId;
-
+    @Column("customerId")
     private String customerId;
-    private String orderId;  //foreign key
+    @Column("orderId")
+    private String orderId;
+    @Column("transferAmount")//foreign key
     private Integer transferAmount;
+    @Column("operationType")
     private String operationType;  // CHARGE/REFUND/...
+    @Column("createTime")
     private String createTime;
 
     public Ledger() {}
