@@ -5,5 +5,5 @@ import com.fandy.orderservicefan.entity.Order;
 import org.komamitsu.spring.data.sqlite.SqliteRepository;
 import org.springframework.data.repository.CrudRepository;
 
-public interface LedgerRepository extends CrudRepository<Ledger, String> {
+public interface LedgerRepository extends SqliteRepository<Ledger, String> {
 }

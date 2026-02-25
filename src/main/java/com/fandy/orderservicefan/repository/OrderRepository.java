@@ -4,5 +4,5 @@ import com.fandy.orderservicefan.entity.Order;
 import org.komamitsu.spring.data.sqlite.SqliteRepository;
 import org.springframework.data.repository.CrudRepository;
 
-public interface OrderRepository extends CrudRepository<Order, String> {
+public interface OrderRepository extends SqliteRepository<Order, String> {
 }

@@ -9,7 +9,7 @@ public class CreateOrderRequest {
 
     @JsonProperty("item_id")
     private String itemId;
-
+    @JsonProperty("quantity")
     private Integer quantity;
 
     public CreateOrderRequest(){}

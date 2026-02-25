@@ -22,10 +22,11 @@ public class orderController {
     public ResponseEntity<CreateOrderResponse> createOrder(
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestHeader(value = "X-Debug-Fail-After-Commit", defaultValue = "false") boolean failureTrigger,
-            CreateOrderRequest request) {
+            @RequestBody CreateOrderRequest request) {
         CreateOrderResponse response = orderService.createOrder(request, idempotencyKey, failureTrigger);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
 
     @GetMapping("/{orderId}")
     public ResponseEntity<GetOrderResponse> getOrder(@PathVariable String orderId) {

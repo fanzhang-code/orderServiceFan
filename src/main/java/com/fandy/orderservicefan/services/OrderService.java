@@ -13,7 +13,6 @@ import com.fandy.orderservicefan.responses.CreateOrderResponse;
 import com.fandy.orderservicefan.responses.GetOrderResponse;
 import com.fandy.orderservicefan.utils.FingerprintUtil;
 import com.fandy.orderservicefan.utils.JsonUtils;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,46 +59,46 @@ public class OrderService {
         IdempotencyRecord record = new IdempotencyRecord(idempotencyKey, fingerprint, null, null,
                 Instant.now().toString());
         try {
-            System.out.println("hello fandy: " + record.getIdempotencyKey() + " " + record.getFingerprint());
-            idempotencyRepository.save(record);
-        } catch (DuplicateKeyException e) {
-            System.out.println("duplicate request");
-            //duplicate request
-            IdempotencyRecord preRecord = idempotencyRepository.findById(idempotencyKey).orElse(null);
-            if(preRecord == null){
-                throw new RuntimeException("duplicate request but idempotency record not found");
-            }
-            //check payload
-            if(!preRecord.getFingerprint().equals(fingerprint)){
-                throw new ConflictException("payload mismatch");
-            }else{
-                if(preRecord.getStatusCode() != null && preRecord.getResponseBody() != null){
-                    return JsonUtils.fromJson(preRecord.getResponseBody(), CreateOrderResponse.class);
-                }else{
-                    throw new InProgressException("Request already in progress. Please retry it later.");
+
+            int inserted = idempotencyRepository.tryInsert(record.getIdempotencyKey(), record.getFingerprint(), record.getStatusCode(),
+                    record.getResponseBody(), record.getCreateTime());
+            if (inserted == 0) {
+                System.out.println("duplicate request");
+                //duplicate request
+                IdempotencyRecord preRecord = idempotencyRepository.findById(idempotencyKey).orElse(null);
+                if (preRecord == null) {
+                    throw new RuntimeException("duplicate request but idempotency record not found");
+                }
+                //check payload
+                if (!preRecord.getFingerprint().equals(fingerprint)) {
+                    throw new ConflictException("payload mismatch");
+                } else {
+                    if (preRecord.getStatusCode() != null && preRecord.getResponseBody() != null) {
+                        return JsonUtils.fromJson(preRecord.getResponseBody(), CreateOrderResponse.class);
+                    } else {
+                        throw new InProgressException("Request already in progress. Please retry it later.");
+                    }
                 }
             }
         } catch (Exception e) {
-            System.out.println("error while creating order: " + e.getMessage());
-            throw new RuntimeException();
+            throw e;
         }
 
         //update order table
         String orderId = UUID.randomUUID().toString();
         Order newOrder = new Order(orderId, createOrderRequest.getCustomerId(),
                 createOrderRequest.getItemId(), createOrderRequest.getQuantity(), "created");
-        orderRepository.save(newOrder);
+        orderRepository.insert(newOrder);
 
         //update ledger table
         Ledger newLedger = new Ledger(UUID.randomUUID().toString(), createOrderRequest.getCustomerId(), orderId,
                 createOrderRequest.getQuantity(), "CHARGE", Instant.now().toString());
-        ledgerRepository.save(newLedger);
+        ledgerRepository.insert(newLedger);
 
         //create response
         CreateOrderResponse response = new CreateOrderResponse(orderId, "created", "order successfully created");
         record.setStatusCode("201");
         record.setResponseBody(JsonUtils.toJson(response));
-        System.out.println("update record: " + record.getIdempotencyKey() + " " + record.getResponseBody());
         idempotencyRepository.save(record);
 
         return response;
