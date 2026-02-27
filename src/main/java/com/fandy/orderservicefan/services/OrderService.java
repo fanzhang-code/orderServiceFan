@@ -13,6 +13,8 @@ import com.fandy.orderservicefan.responses.CreateOrderResponse;
 import com.fandy.orderservicefan.responses.GetOrderResponse;
 import com.fandy.orderservicefan.utils.FingerprintUtil;
 import com.fandy.orderservicefan.utils.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final LedgerRepository ledgerRepository;
     private final IdempotencyRepository idempotencyRepository;
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     public OrderService(OrderRepository orderRepository, LedgerRepository ledgerRepository, IdempotencyRepository idempotencyRepository) {
         this.orderRepository = orderRepository;
@@ -35,7 +38,6 @@ public class OrderService {
     //include a failure trigger
     public CreateOrderResponse createOrder(CreateOrderRequest createOrderRequest, String idempotencyKey, boolean failureTrigger){
         CreateOrderResponse response = createOrder(createOrderRequest, idempotencyKey);
-
         if(failureTrigger){
             throw new RuntimeException("failure after commit");
         }
@@ -63,7 +65,7 @@ public class OrderService {
             int inserted = idempotencyRepository.tryInsert(record.getIdempotencyKey(), record.getFingerprint(), record.getStatusCode(),
                     record.getResponseBody(), record.getCreateTime());
             if (inserted == 0) {
-                System.out.println("duplicate request");
+                log.info("event=duplicate request with same idempotency key");
                 //duplicate request
                 IdempotencyRecord preRecord = idempotencyRepository.findById(idempotencyKey).orElse(null);
                 if (preRecord == null) {
@@ -100,6 +102,8 @@ public class OrderService {
         record.setStatusCode("201");
         record.setResponseBody(JsonUtils.toJson(response));
         idempotencyRepository.save(record);
+        log.info("event=order_created order_id={} customer_id={} item_id={} quantity={}",
+                orderId, newOrder.getCustomerId(), newOrder.getItemId(), newOrder.getQuantity());
 
         return response;
     }

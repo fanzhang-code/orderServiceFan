@@ -12,7 +12,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<String> handleConflict(ConflictException e) {
-        System.out.println("conflict" + e.getMessage());
+        System.out.println("conflict: " + e.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(e.getMessage());
     }
