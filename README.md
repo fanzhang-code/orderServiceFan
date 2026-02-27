@@ -25,6 +25,50 @@ IP address: 3.129.12.251
 
 ## How to test
 
+For Windows PowerShell:
+
+1. Create order:
+````
+curl.exe -i -X POST http://3.129.12.251:8080/orders `
+  -H "Content-Type: application/json" `
+  -H "Idempotency-Key: test-123" `
+  -d '{\"customer_id\":\"cust1\",\"item_id\":\"item1\",\"quantity\":1}'
+````
+
+2. Avoid duplicate order (create order with same idempotency key)
+````   
+curl.exe -i -X POST http://3.129.12.251:8080/orders `
+  -H "Content-Type: application/json" `
+  -H "Idempotency-Key: test-123" `
+  -d '{\"customer_id\":\"cust1\",\"item_id\":\"item1\",\"quantity\":1}'
+````
+3. Same key, different payload
+````   
+curl.exe -i -X POST http://3.129.12.251:8080/orders `
+  -H "Content-Type: application/json" `
+  -H "Idempotency-Key: test-123" `
+  -d '{\"customer_id\":\"cust1\",\"item_id\":\"item1\",\"quantity\":5}'
+````
+4. Test failure after commit
+````   
+curl.exe -i -X POST http://3.129.12.251:8080/orders `
+  -H "Content-Type: application/json" `
+  -H "Idempotency-Key: test-fail-1" `
+  -H "X-Debug-Fail-After-Commit: true" `
+  -d '{\"customer_id\":\"cust2\",\"item_id\":\"item2\",\"quantity\":1}'
+````
+5. Retry after simulated failure
+````    
+curl.exe -i -X POST http://3.129.12.251:8080/orders `
+  -H "Content-Type: application/json" `
+  -H "Idempotency-Key: test-fail-1" `
+  -d '{\"customer_id\":\"cust2\",\"item_id\":\"item2\",\"quantity\":1}'
+````
+6. Fetch order details
+````    
+curl.exe -i -X GET http://3.129.12.251:8080/orders/<order_id>
+````
+
 For MAC:
 
 1. Create order:
@@ -65,48 +109,6 @@ curl -i -X POST http://3.129.12.251:8080/orders \
 ````
 6. Fetch order details
 ````    
-curl http://3.129.12.251:8080/orders/<order_id>
-````
-For Windows PowerShell:
-
-1. Create order:
-````
-curl -i -X POST http://3.129.12.251:8080/orders \
-  -H "Content-Type: application/json" \
-  -H "Idempotency-Key: test-123" \
-  -d '{\"customer_id\":\"cust1\",\"item_id\":\"item1\",\"quantity\":1}'
+curl -i -X GET http://3.129.12.251:8080/orders/<order_id>
 ````
 
-2. Avoid duplicate order (create order with same idempotency key)
-````   
-curl -i -X POST http://3.129.12.251:8080/orders \
-  -H "Content-Type: application/json" \
-  -H "Idempotency-Key: test-123" \
-  -d '{\"customer_id\":\"cust1\",\"item_id\":\"item1\",\"quantity\":1}'
-````
-3. Same key, different payload
-````   
-curl -i -X POST http://3.129.12.251:8080/orders \
-  -H "Content-Type: application/json" \
-  -H "Idempotency-Key: test-123" \
-  -d '{\"customer_id\":\"cust1\",\"item_id\":\"item1\",\"quantity\":5}'
-````
-4. Test failure after commit
-````   
-curl -i -X POST http://3.129.12.251:8080/orders \
-  -H "Content-Type: application/json" \
-  -H "Idempotency-Key: test-fail-1" \
-  -H "X-Debug-Fail-After-Commit: true" \
-  -d '{\"customer_id\":\"cust2\",\"item_id\":\"item2\",\"quantity\":1}'
-````
-5. Retry after simulated failure
-````    
-curl -i -X POST http://3.129.12.251:8080/orders \
-  -H "Content-Type: application/json" \
-  -H "Idempotency-Key: test-fail-1" \
-  -d '{\"customer_id\":\"cust2\",\"item_id\":\"item2\",\"quantity\":1}'
-````
-6. Fetch order details
-````    
-curl http://3.129.12.251:8080/orders/<order_id>
-````
