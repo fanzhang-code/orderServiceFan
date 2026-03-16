@@ -3,6 +3,7 @@ package com.fandy.orderservicefan.services;
 import com.fandy.orderservicefan.entity.IdempotencyRecord;
 import com.fandy.orderservicefan.entity.Ledger;
 import com.fandy.orderservicefan.entity.Order;
+import com.fandy.orderservicefan.exceptions.AfterCommitFailureException;
 import com.fandy.orderservicefan.exceptions.ConflictException;
 import com.fandy.orderservicefan.exceptions.InProgressException;
 import com.fandy.orderservicefan.repository.IdempotencyRepository;
@@ -36,25 +37,8 @@ public class OrderService {
         this.idempotencyRepository = idempotencyRepository;
     }
 
-    //include a failure trigger
+    @Transactional(noRollbackFor = AfterCommitFailureException.class)
     public CreateOrderResponse createOrder(CreateOrderRequest createOrderRequest, String idempotencyKey, boolean failureTrigger){
-        CreateOrderResponse response = createOrder(createOrderRequest, idempotencyKey);
-        if(failureTrigger){
-            throw new RuntimeException("failure after commit");
-        }
-
-        return response;
-    }
-
-    public GetOrderResponse getOrderDetail(String orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("order not found: " + orderId));
-        return new GetOrderResponse(order.getOrderId(), order.getCustomerId(), order.getItemId(), order.getQuantity(),
-                order.getStatus());
-    }
-
-    @Transactional
-    protected CreateOrderResponse createOrder(CreateOrderRequest createOrderRequest, String idempotencyKey){
         //cal fingerprint
         String fingerprint = FingerprintUtil.makeFingerprint(createOrderRequest);
 
@@ -62,26 +46,31 @@ public class OrderService {
         IdempotencyRecord record = new IdempotencyRecord(idempotencyKey, fingerprint, null, null,
                 java.time.OffsetDateTime.now());
         try {
-            idempotencyRepository.saveAndFlush(record);
-            log.info("event=idempotency_record_created key={}", idempotencyKey);
-        } catch (DataIntegrityViolationException e){
-            //duplicate request
-            log.info("event=duplicate_request key={} action=fetching_existing_record", idempotencyKey);
-            IdempotencyRecord preRecord = idempotencyRepository.findById(idempotencyKey).orElse(null);
-            if (preRecord == null) {
-                throw new RuntimeException("duplicate request but idempotency record not found");
-            }
-            //check payload
-            if (!preRecord.getFingerprint().equals(fingerprint)) {
-                throw new ConflictException("payload mismatch");
-            } else {
-                if (preRecord.getStatusCode() != null && preRecord.getResponseBody() != null) {
-                    return JsonUtils.fromJson(preRecord.getResponseBody(), CreateOrderResponse.class);
+
+            int inserted = idempotencyRepository.tryInsert(record.getIdempotencyKey(), record.getFingerprint(), record.getStatusCode(),
+                    record.getResponseBody(), record.getCreateTime());
+            if (inserted == 0) {
+                log.info("event=duplicate request with same idempotency key");
+                //duplicate request
+                IdempotencyRecord preRecord = idempotencyRepository.findById(idempotencyKey).orElse(null);
+                if (preRecord == null) {
+                    throw new RuntimeException("duplicate request but idempotency record not found");
+                }
+                //check payload
+                if (!preRecord.getFingerprint().equals(fingerprint)) {
+                    throw new ConflictException("payload mismatch");
                 } else {
-                    throw new InProgressException("Request already in progress. Please retry it later.");
+                    if (preRecord.getStatusCode() != null && preRecord.getResponseBody() != null) {
+                        return JsonUtils.fromJson(preRecord.getResponseBody(), CreateOrderResponse.class);
+                    } else {
+                        throw new InProgressException("Request already in progress. Please retry it later.");
+                    }
                 }
             }
+        } catch (Exception e) {
+            throw e;
         }
+
 
         //update order table
         String orderId = UUID.randomUUID().toString();
@@ -102,6 +91,19 @@ public class OrderService {
         log.info("event=order_created order_id={} customer_id={} item_id={} quantity={}",
                 orderId, newOrder.getCustomerId(), newOrder.getItemId(), newOrder.getQuantity());
 
+        //include a failure trigger
+        if(failureTrigger){
+            throw new AfterCommitFailureException("failure after commit");
+        }
+
         return response;
     }
+
+    public GetOrderResponse getOrderDetail(String orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("order not found: " + orderId));
+        return new GetOrderResponse(order.getOrderId(), order.getCustomerId(), order.getItemId(), order.getQuantity(),
+                order.getStatus());
+    }
+
 }
