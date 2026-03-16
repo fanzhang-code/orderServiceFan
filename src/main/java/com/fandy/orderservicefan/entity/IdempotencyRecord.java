@@ -1,31 +1,32 @@
 package com.fandy.orderservicefan.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Transient;
-import org.springframework.data.domain.Persistable;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
 
+import java.time.OffsetDateTime;
 
-@Table("idempotency_records")
+@Entity
+@Table(name = "idempotency_records")
 public class IdempotencyRecord {
 
     @Id
-    @Column("idempotencyKey")
+    @Column(name = "idempotency_key")
     private String idempotencyKey;
-    @Column("fingerprint")
+    @Column(name = "fingerprint")
     private String fingerprint;
-    @Column("statusCode")
+    @Column(name = "status_code")
     private String statusCode;
-    @Column("responseBody")
+    @Column(name = "response_body")
     private String responseBody;
-    @Column("createTime")
-    private String createTime;
+    @Column(name = "create_time")
+    private OffsetDateTime createTime;
 
     public IdempotencyRecord() {}
 
-    public IdempotencyRecord(String idempotencyKey, String fingerprint, String statusCode, String responseBody, String createTime) {
+    public IdempotencyRecord(String idempotencyKey, String fingerprint, String statusCode, String responseBody, OffsetDateTime createTime) {
         this.idempotencyKey = idempotencyKey;
         this.fingerprint = fingerprint;
         this.statusCode = statusCode;
@@ -45,8 +46,8 @@ public class IdempotencyRecord {
     public String getResponseBody() { return responseBody; }
     public void setResponseBody(String responseBody) { this.responseBody = responseBody; }
 
-    public String getCreateTime() { return createTime; }
-    public void setCreateTime(String createTime) { this.createTime = createTime; }
+    public OffsetDateTime getCreateTime() { return createTime; }
+    public void setCreateTime(OffsetDateTime createTime) { this.createTime = createTime; }
 
 
 }

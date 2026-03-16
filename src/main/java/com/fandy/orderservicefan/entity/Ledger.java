@@ -1,31 +1,36 @@
 package com.fandy.orderservicefan.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
 
-@Table("ledger")
+
+import java.time.OffsetDateTime;
+
+@Entity
+@Table(name = "ledger")
 public class Ledger {
 
     @Id
-    @Column("ledgerId")
+    @Column(name ="ledger_id")
     private String ledgerId;
-    @Column("customerId")
+    @Column(name ="customer_id")
     private String customerId;
-    @Column("orderId")
+    @Column(name ="order_id")
     private String orderId;
-    @Column("transferAmount")//foreign key
+    @Column(name ="transfer_amount")//foreign key
     private Integer transferAmount;
-    @Column("operationType")
+    @Column(name ="operation_type")
     private String operationType;  // CHARGE/REFUND/...
-    @Column("createTime")
-    private String createTime;
+    @Column(name ="create_time")
+    private OffsetDateTime createTime;
 
     public Ledger() {}
 
     public Ledger(String ledgerId, String customerId, String orderId,
-                 Integer transferAmount, String operationType, String createTime) {
+                 Integer transferAmount, String operationType, OffsetDateTime createTime) {
         this.ledgerId = ledgerId;
         this.customerId = customerId;
         this.orderId = orderId;
@@ -49,7 +54,7 @@ public class Ledger {
     public String getOperationType() { return operationType; }
     public void setOperationType(String operationType) { this.operationType = operationType; }
 
-    public String getCreateTime() { return createTime; }
-    public void setCreateTime(String createTime) { this.createTime = createTime; }
+    public OffsetDateTime getCreateTime() { return createTime; }
+    public void setCreateTime(OffsetDateTime createTime) { this.createTime = createTime; }
 
 }

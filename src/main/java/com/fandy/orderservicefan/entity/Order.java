@@ -1,22 +1,25 @@
 package com.fandy.orderservicefan.entity;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
 
-@Table("orders")
+
+@Entity
+@Table(name = "orders")
 public class Order {
 
     @Id
-    @Column("orderId")
+    @Column(name = "order_id")
     private String orderId;
-    @Column("customerId")
+    @Column(name = "customer_id")
     private String customerId;
-    @Column("itemId")
+    @Column(name = "item_id")
     private String itemId;
-    @Column("quantity")
+    @Column(name = "quantity")
     private Integer quantity;
-    @Column("status")
+    @Column(name = "status")
     private String status;
 
     public Order() {}

@@ -15,6 +15,7 @@ import com.fandy.orderservicefan.utils.FingerprintUtil;
 import com.fandy.orderservicefan.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,43 +60,39 @@ public class OrderService {
 
         //create idempotency record
         IdempotencyRecord record = new IdempotencyRecord(idempotencyKey, fingerprint, null, null,
-                Instant.now().toString());
+                java.time.OffsetDateTime.now());
         try {
-
-            int inserted = idempotencyRepository.tryInsert(record.getIdempotencyKey(), record.getFingerprint(), record.getStatusCode(),
-                    record.getResponseBody(), record.getCreateTime());
-            if (inserted == 0) {
-                log.info("event=duplicate request with same idempotency key");
-                //duplicate request
-                IdempotencyRecord preRecord = idempotencyRepository.findById(idempotencyKey).orElse(null);
-                if (preRecord == null) {
-                    throw new RuntimeException("duplicate request but idempotency record not found");
-                }
-                //check payload
-                if (!preRecord.getFingerprint().equals(fingerprint)) {
-                    throw new ConflictException("payload mismatch");
+            idempotencyRepository.saveAndFlush(record);
+            log.info("event=idempotency_record_created key={}", idempotencyKey);
+        } catch (DataIntegrityViolationException e){
+            //duplicate request
+            log.info("event=duplicate_request key={} action=fetching_existing_record", idempotencyKey);
+            IdempotencyRecord preRecord = idempotencyRepository.findById(idempotencyKey).orElse(null);
+            if (preRecord == null) {
+                throw new RuntimeException("duplicate request but idempotency record not found");
+            }
+            //check payload
+            if (!preRecord.getFingerprint().equals(fingerprint)) {
+                throw new ConflictException("payload mismatch");
+            } else {
+                if (preRecord.getStatusCode() != null && preRecord.getResponseBody() != null) {
+                    return JsonUtils.fromJson(preRecord.getResponseBody(), CreateOrderResponse.class);
                 } else {
-                    if (preRecord.getStatusCode() != null && preRecord.getResponseBody() != null) {
-                        return JsonUtils.fromJson(preRecord.getResponseBody(), CreateOrderResponse.class);
-                    } else {
-                        throw new InProgressException("Request already in progress. Please retry it later.");
-                    }
+                    throw new InProgressException("Request already in progress. Please retry it later.");
                 }
             }
-        } catch (Exception e) {
-            throw e;
         }
 
         //update order table
         String orderId = UUID.randomUUID().toString();
         Order newOrder = new Order(orderId, createOrderRequest.getCustomerId(),
                 createOrderRequest.getItemId(), createOrderRequest.getQuantity(), "created");
-        orderRepository.insert(newOrder);
+        orderRepository.save(newOrder);
 
         //update ledger table
         Ledger newLedger = new Ledger(UUID.randomUUID().toString(), createOrderRequest.getCustomerId(), orderId,
-                createOrderRequest.getQuantity(), "CHARGE", Instant.now().toString());
-        ledgerRepository.insert(newLedger);
+                createOrderRequest.getQuantity(), "CHARGE", java.time.OffsetDateTime.now());
+        ledgerRepository.save(newLedger);
 
         //create response
         CreateOrderResponse response = new CreateOrderResponse(orderId, "created", "order successfully created");
