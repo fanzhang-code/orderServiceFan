@@ -1,5 +1,7 @@
 ## Core Architecture
 
+**To see README for homework 2, please check README-HW2.md**
+
 Migrated OrderService in HW2 to use Postgres. AWS Deployment Config saved in /deployment
 
 Local: Docker Compose (API + Postgres Container)
