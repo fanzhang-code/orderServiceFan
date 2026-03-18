@@ -2,7 +2,7 @@
 
 **To see README for homework 2, please check README-HW2.md**
 
-Migrated OrderService in HW2 to use Postgres. AWS Deployment Config saved in /deployment
+Migrated OrderService in HW2 to use Postgres.
 
 Local: Docker Compose (API + Postgres Container)
 
@@ -53,6 +53,10 @@ Database Migrations:
 Migrations are handled via Flyway and execute automatically on startup to establish the schema.
 
 ## AWS Deployment Configuration
+
+ECS deployment config(Json) saved in /deployment
+
+Use SSM Parameter Store and injected into the ECS Task Definition: /order-service/DB_PASSWORD
 
 Public ALB URL: http://order-service-alb-2118743509.us-east-2.elb.amazonaws.com
 
