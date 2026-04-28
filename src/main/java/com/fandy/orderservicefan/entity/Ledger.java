@@ -1,36 +1,24 @@
 package com.fandy.orderservicefan.entity;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import jakarta.persistence.Id;
-
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
 import java.time.OffsetDateTime;
 
-@Entity
-@Table(name = "ledger")
+@DynamoDbBean
 public class Ledger {
 
-    @Id
-    @Column(name ="ledger_id")
     private String ledgerId;
-    @Column(name ="customer_id")
     private String customerId;
-    @Column(name ="order_id")
     private String orderId;
-    @Column(name ="transfer_amount")//foreign key
     private Integer transferAmount;
-    @Column(name ="operation_type")
-    private String operationType;  // CHARGE/REFUND/...
-    @Column(name ="create_time")
+    private String operationType;
     private OffsetDateTime createTime;
 
     public Ledger() {}
 
     public Ledger(String ledgerId, String customerId, String orderId,
-                 Integer transferAmount, String operationType, OffsetDateTime createTime) {
+                  Integer transferAmount, String operationType, OffsetDateTime createTime) {
         this.ledgerId = ledgerId;
         this.customerId = customerId;
         this.orderId = orderId;
@@ -39,22 +27,52 @@ public class Ledger {
         this.createTime = createTime;
     }
 
-    public String getLedgerId() { return ledgerId; }
-    public void setLedgerId(String LedgerId) { this.ledgerId = LedgerId; }
+    @DynamoDbPartitionKey
+    public String getLedgerId() {
+        return ledgerId;
+    }
 
-    public String getCustomerId() { return customerId; }
-    public void setCustomerId(String customerId) { this.customerId = customerId; }
+    public void setLedgerId(String ledgerId) {
+        this.ledgerId = ledgerId;
+    }
 
-    public String getOrderId() { return orderId; }
-    public void setOrderId(String orderId) { this.orderId = orderId; }
+    public String getCustomerId() {
+        return customerId;
+    }
 
-    public Integer getTransferAmount() { return transferAmount; }
-    public void setTransferAmount(Integer transferAmount) { this.transferAmount = transferAmount; }
+    public void setCustomerId(String customerId) {
+        this.customerId = customerId;
+    }
 
-    public String getOperationType() { return operationType; }
-    public void setOperationType(String operationType) { this.operationType = operationType; }
+    public String getOrderId() {
+        return orderId;
+    }
 
-    public OffsetDateTime getCreateTime() { return createTime; }
-    public void setCreateTime(OffsetDateTime createTime) { this.createTime = createTime; }
+    public void setOrderId(String orderId) {
+        this.orderId = orderId;
+    }
 
+    public Integer getTransferAmount() {
+        return transferAmount;
+    }
+
+    public void setTransferAmount(Integer transferAmount) {
+        this.transferAmount = transferAmount;
+    }
+
+    public String getOperationType() {
+        return operationType;
+    }
+
+    public void setOperationType(String operationType) {
+        this.operationType = operationType;
+    }
+
+    public OffsetDateTime getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(OffsetDateTime createTime) {
+        this.createTime = createTime;
+    }
 }

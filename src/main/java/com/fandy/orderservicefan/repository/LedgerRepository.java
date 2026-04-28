@@ -1,8 +1,19 @@
 package com.fandy.orderservicefan.repository;
 
 import com.fandy.orderservicefan.entity.Ledger;
+import org.springframework.stereotype.Repository;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 
-import org.springframework.data.repository.CrudRepository;
+@Repository
+public class LedgerRepository {
 
-public interface LedgerRepository extends CrudRepository<Ledger, String> {
+    private final DynamoDbTable<Ledger> table;
+
+    public LedgerRepository(DynamoDbTable<Ledger> ledgerTable) {
+        this.table = ledgerTable;
+    }
+
+    public void save(Ledger ledger) {
+        table.putItem(ledger);
+    }
 }

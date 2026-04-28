@@ -16,11 +16,7 @@ import com.fandy.orderservicefan.utils.FingerprintUtil;
 import com.fandy.orderservicefan.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -37,7 +33,6 @@ public class OrderService {
         this.idempotencyRepository = idempotencyRepository;
     }
 
-    @Transactional(noRollbackFor = AfterCommitFailureException.class)
     public CreateOrderResponse createOrder(CreateOrderRequest createOrderRequest, String idempotencyKey, boolean failureTrigger){
         //cal fingerprint
         String fingerprint = FingerprintUtil.makeFingerprint(createOrderRequest);
@@ -47,9 +42,8 @@ public class OrderService {
                 java.time.OffsetDateTime.now());
         try {
 
-            int inserted = idempotencyRepository.tryInsert(record.getIdempotencyKey(), record.getFingerprint(), record.getStatusCode(),
-                    record.getResponseBody(), record.getCreateTime());
-            if (inserted == 0) {
+            boolean inserted = idempotencyRepository.tryInsert(record);
+            if (!inserted) {
                 log.info("event=duplicate request with same idempotency key");
                 //duplicate request
                 IdempotencyRecord preRecord = idempotencyRepository.findById(idempotencyKey).orElse(null);

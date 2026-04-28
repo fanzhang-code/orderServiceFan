@@ -1,29 +1,45 @@
 package com.fandy.orderservicefan.repository;
 
 import com.fandy.orderservicefan.entity.IdempotencyRecord;
+import org.springframework.stereotype.Repository;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
+import software.amazon.awssdk.enhanced.dynamodb.Expression;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.data.repository.query.Param;
+import java.util.Optional;
 
-import java.time.OffsetDateTime;
+@Repository
+public class IdempotencyRepository {
 
-public interface IdempotencyRepository extends JpaRepository<IdempotencyRecord, String> {
-    @Modifying
-    @Query(value = """
-        INSERT INTO idempotency_records
-            (idempotency_key, fingerprint, status_code, response_body, create_time)
-        VALUES
-            (:idempotencyKey, :fingerprint, :statusCode, :responseBody, :createTime)
-        ON CONFLICT (idempotency_key) DO NOTHING
-        """, nativeQuery = true)
-    int tryInsert(
-            @Param("idempotencyKey") String idempotencyKey,
-            @Param("fingerprint") String fingerprint,
-            @Param("statusCode") String statusCode,
-            @Param("responseBody") String responseBody,
-            @Param("createTime") OffsetDateTime createTime
-    );
+    private final DynamoDbTable<IdempotencyRecord> table;
+
+    public IdempotencyRepository(DynamoDbTable<IdempotencyRecord> idempotencyRecordTable) {
+        this.table = idempotencyRecordTable;
+    }
+
+    public boolean tryInsert(IdempotencyRecord record) {
+        try {
+            table.putItem(r -> r
+                    .item(record)
+                    .conditionExpression(Expression.builder()
+                            .expression("attribute_not_exists(idempotencyKey)")
+                            .build())
+            );
+            return true;
+        } catch (ConditionalCheckFailedException e) {
+            return false;
+        }
+    }
+
+    public Optional<IdempotencyRecord> findById(String idempotencyKey) {
+        IdempotencyRecord record = table.getItem(r -> r
+                .key(k -> k.partitionValue(idempotencyKey))
+        );
+
+        return Optional.ofNullable(record);
+    }
+
+    public void save(IdempotencyRecord record) {
+        table.putItem(record);
+    }
 }
