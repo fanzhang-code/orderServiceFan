@@ -7,6 +7,7 @@ import com.fandy.orderservicefan.exceptions.AfterCommitFailureException;
 import com.fandy.orderservicefan.exceptions.ConflictException;
 import com.fandy.orderservicefan.exceptions.InProgressException;
 import com.fandy.orderservicefan.repository.IdempotencyRepository;
+import com.fandy.orderservicefan.repository.ItemStockRepository;
 import com.fandy.orderservicefan.repository.LedgerRepository;
 import com.fandy.orderservicefan.repository.OrderRepository;
 import com.fandy.orderservicefan.requests.CreateOrderRequest;
@@ -26,11 +27,14 @@ public class OrderService {
     private final LedgerRepository ledgerRepository;
     private final IdempotencyRepository idempotencyRepository;
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
+    private final ItemStockRepository itemStockRepository;
 
-    public OrderService(OrderRepository orderRepository, LedgerRepository ledgerRepository, IdempotencyRepository idempotencyRepository) {
+    public OrderService(OrderRepository orderRepository, LedgerRepository ledgerRepository, IdempotencyRepository idempotencyRepository
+    , ItemStockRepository itemStockRepository) {
         this.orderRepository = orderRepository;
         this.ledgerRepository = ledgerRepository;
         this.idempotencyRepository = idempotencyRepository;
+        this.itemStockRepository = itemStockRepository;
     }
 
     public CreateOrderResponse createOrder(CreateOrderRequest createOrderRequest, String idempotencyKey, boolean failureTrigger){
@@ -65,6 +69,30 @@ public class OrderService {
             throw e;
         }
 
+        log.info("event=reserve_stock_attempt item_id={} quantity={}",
+                createOrderRequest.getItemId(), createOrderRequest.getQuantity());
+
+        //check availability
+        try {
+        itemStockRepository.reserveStock(
+                createOrderRequest.getItemId(),
+                createOrderRequest.getQuantity()
+            );
+        } catch (RuntimeException e) {
+            CreateOrderResponse response = new CreateOrderResponse(
+                    null,
+                    "failed",
+                    e.getMessage()
+            );
+
+            record.setStatusCode("409");
+            record.setResponseBody(JsonUtils.toJson(response));
+            idempotencyRepository.save(record);
+
+            throw e;
+        }
+        log.info("event=reserve_stock_success item_id={} quantity={}",
+                createOrderRequest.getItemId(), createOrderRequest.getQuantity());
 
         //update order table
         String orderId = UUID.randomUUID().toString();
