@@ -1,16 +1,9 @@
 services:
-  dynamodb-local:
-    image: amazon/dynamodb-local
-    command: "-jar DynamoDBLocal.jar -sharedDb -inMemory"
-    ports:
-      - "8000:8000"
-
   api:
-    build: .
+    image: order-service
+    container_name: order-service-api
     ports:
       - "8080:8080"
     environment:
-      - AWS_DYNAMODB_ENDPOINT=http://dynamodb-local:8000
       - AWS_REGION=us-east-1
-    depends_on:
-      - dynamodb-local
+    restart: always

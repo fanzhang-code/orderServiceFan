@@ -17,7 +17,10 @@ import com.fandy.orderservicefan.utils.FingerprintUtil;
 import com.fandy.orderservicefan.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.util.UUID;
 
 @Service
@@ -66,6 +69,7 @@ public class OrderService {
                 }
             }
         } catch (Exception e) {
+            log.error("Error when saving idempotency record: {}",e.getMessage());
             throw e;
         }
 
@@ -79,15 +83,23 @@ public class OrderService {
                 createOrderRequest.getQuantity()
             );
         } catch (RuntimeException e) {
+            log.error("event=order_create_failed item_id={} quantity={} error={}",
+                    createOrderRequest.getItemId(), createOrderRequest.getQuantity(), e.getMessage(), e);
             CreateOrderResponse response = new CreateOrderResponse(
                     null,
                     "failed",
                     e.getMessage()
             );
 
-            record.setStatusCode("409");
-            record.setResponseBody(JsonUtils.toJson(response));
-            idempotencyRepository.save(record);
+            try {
+                record.setStatusCode("500");
+                record.setResponseBody(JsonUtils.toJson(response));
+                idempotencyRepository.save(record);
+            } catch (Exception saveError) {
+                log.error("event=idempotency_save_failed error={}",
+                        saveError.getMessage(),
+                        saveError);
+            }
 
             throw e;
         }
