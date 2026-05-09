@@ -1,6 +1,6 @@
 ## Core Architecture
 
-**To see README for homework 2, please check README-HW2.md**
+**Now the code has been changed for the final project. To see the detailed readme for the fianl project, you can check**
 
 Migrated OrderService in HW2 to use Postgres.
 
