@@ -1,6 +1,6 @@
 ## Core Architecture
 
-# **Now the code has been changed for the final project. To see the detailed readme for the final project, you can check**
+# **Now the code has been changed for the final project. To see the detailed readme for the final project, you can check https://github.com/ryanchowdev/checkout-service-lambda/blob/main/README.md**
 
 Migrated OrderService in HW2 to use Postgres.
 
